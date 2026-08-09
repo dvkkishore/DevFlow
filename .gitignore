@@ -1,3 +1,19 @@
-env
+# Environment
 .env
-test
+.env.*
+!.env.example
+env/
+venv/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
