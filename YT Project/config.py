@@ -1,1 +1,0 @@
-MAX_CHARACTERS = 10000  # Define a maximum character limit for the file content
