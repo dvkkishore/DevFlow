@@ -1,605 +1,453 @@
-# DevFlow AI
+# DevFlow
 
-> A standalone AI engineering agent that understands repositories, uses developer tools, fixes code, verifies its work, and supports portable Agent Skills.
+**A standalone agentic AI engineering assistant with portable Agent Skills for repository understanding and verified debugging.**
 
-> [!IMPORTANT]
-> **Current phase: Phase 4 end-to-end demonstration and lightweight evaluation complete — awaiting review.**
->
-> Phase 1A established DevFlow Core, Phase 2 added progressive `SKILL.md` loading, Phase 2.1 separated the skill library from the target workspace, and Phase 3 added the production `repo-understanding` and `debug-and-fix` skills.
+DevFlow uses an iterative LLM tool-calling loop to inspect software repositories, search and read code, execute development commands, make focused changes, and verify its work inside an explicitly scoped workspace.
+
+Instead of placing every workflow into one large system prompt, DevFlow supports reusable `SKILL.md` capabilities that are discovered by metadata and loaded only when relevant.
 
 ---
 
-## 1. Product Definition
+## Why DevFlow?
 
-DevFlow is a **standalone tool-using engineering agent**, not a chatbot and not a collection of Markdown prompts.
+Developers repeatedly spend time on tasks such as:
 
-It should operate on a user-selected software repository and be able to:
+- returning to an unfamiliar or forgotten repository
+- locating important entry points and execution flow
+- diagnosing failing tests and runtime errors
+- changing only the code responsible for a defect
+- verifying that a proposed fix actually works
 
-- inspect and understand a codebase
-- locate relevant files/code
-- trace execution flow
-- run programs/tests
-- observe errors and command output
-- make focused code changes
-- rerun verification
-- iterate when a fix fails
-- later load reusable `SKILL.md` procedures
+DevFlow explores how an engineering agent can handle these workflows through a combination of:
 
-Core behavior:
+- an iterative agent loop
+- structured developer tools
+- workspace-scoped execution
+- reusable Agent Skills
+- progressive context loading
+- verification-oriented behavior
+
+The goal is not just to generate code, but to **inspect, act, observe, and verify**.
+
+---
+
+## Key Features
+
+- **Standalone agent runtime** using Gemini as the current model backend
+- **Iterative tool calling** with observations returned to the model after each action
+- **Workspace isolation** for file and command operations
+- **Portable Agent Skills** stored as `.github/skills/<skill-name>/SKILL.md`
+- **Progressive skill loading** so only skill metadata is present initially
+- **Repository understanding workflow** for unfamiliar codebases
+- **Debug-and-fix workflow** that emphasizes reproduction, evidence, minimal repair, and verification
+- **Developer tools** for listing, reading, searching, writing, and executing within a workspace
+- **Normalized tool results** for successes, failures, output, and exit codes
+- **Bounded command execution** with timeouts, `shell=False`, restricted executables, and read-only Git operations
+- **Automated tests and end-to-end evaluation**
+
+---
+
+## Architecture
 
 ```text
-User request
-    ↓
-DevFlow Agent
-    ↓
-LLM decides next action
-    ↓
-Tool call
-    ↓
-Execute inside workspace
-    ↓
-Return observation
-    ↓
-LLM decides again
-    ↓
-... repeat until complete
+                           User
+                            |
+                            v
+                     DevFlow Agent
+                            |
+                 +----------+----------+
+                 |                     |
+                 v                     v
+          Gemini Session          Skill Catalog
+                 |                 metadata only
+                 |                     |
+                 |              load_skill(name)
+                 |                     |
+                 +----------+----------+
+                            |
+                            v
+                      Agent Runtime
+                            |
+                            v
+                      Tool Registry
+                            |
+        +-------------------+-------------------+
+        |          |          |         |       |
+        v          v          v         v       v
+   list_files  read_file  search_files  write  run_command
+        |          |          |         |       |
+        +-------------------+-------------------+
+                            |
+                            v
+                    Scoped Workspace
 ```
 
-DevFlow should never claim that a fix works without attempting verification when execution is available.
+The model decides the next action, DevFlow executes the requested tool, returns the observation, and continues until the task is complete or the iteration limit is reached.
 
 ---
 
-## 2. Where the Existing Tutorial Code Fits
+## Agent Skills
 
-The initial coding agent was built while following the freeCodeCamp Agentic AI tutorial. It already provides the foundation:
+DevFlow currently includes two production skills.
 
-- Gemini API interaction
-- system prompt
-- conversation state
-- function declarations
-- tool calling
-- tool dispatch
-- file read/write
-- Python execution
-- iterative agent loop
+### `repo-understanding`
 
-That stage is complete.
+Used when a developer needs a grounded mental model of a repository.
 
-From now on:
+The workflow guides the agent to:
+
+1. inspect the top-level structure
+2. identify manifests, configuration, languages, and frameworks
+3. locate likely entry points
+4. inspect only relevant modules
+5. trace imports, references, and execution or data flow
+6. distinguish repository evidence from inference
+7. summarize architecture and useful continuation points
+
+This skill remains read-only unless modification is explicitly requested.
+
+### `debug-and-fix`
+
+Used for crashes, runtime exceptions, failing tests, regressions, and incorrect behavior.
+
+The workflow guides the agent to:
+
+1. understand expected and observed behavior
+2. reproduce the failure when possible
+3. collect stack traces, test failures, logs, and source evidence
+4. identify the root cause instead of patching symptoms
+5. make the smallest reasonable repair
+6. rerun appropriate verification
+7. continue investigating if verification fails
+8. report success only after successful verification
+
+---
+
+## Progressive Skill Loading
+
+DevFlow does not inject every skill body into every request.
 
 ```text
-Tutorial-derived working agent
-            ↓ refactor
-      DevFlow Agent Core
-            ↓
-      Developer Tool Layer
-            ↓
-       Portable Skills
-            ↓
-     Evaluation + Demo
+.github/skills/*/SKILL.md
+          |
+          v
+   discover metadata
+   name + description
+          |
+          v
+    agent context
+          |
+          v
+ model selects skill
+          |
+          v
+  load_skill(name)
+          |
+          v
+ full SKILL.md loaded
+          |
+          v
+ agent follows workflow
 ```
 
-Do **not** create a second agent beside the tutorial agent. Transform the existing implementation.
+The skill library is separate from the target workspace:
+
+- `--workspace` selects the repository DevFlow may inspect, modify, and execute in
+- `--skills-dir` selects the read-only Agent Skills library
+
+This allows the same DevFlow skill library to be used while working on different repositories.
 
 ---
 
-## 3. Target Architecture
+## Developer Tools
+
+| Tool | Purpose |
+|---|---|
+| `list_files` | Inspect workspace structure |
+| `read_file` | Read UTF-8 source and configuration files |
+| `search_files` | Search repository content |
+| `write_file` | Make focused file modifications |
+| `run_command` | Execute allowlisted development commands |
+| `load_skill` | Progressively load a selected Agent Skill |
+
+Tool handlers return normalized results containing success state, output, error details, and exit codes where applicable.
+
+---
+
+## End-to-End Debugging Demo
+
+The repository includes a reproducible multi-file Python demo with an intentional failing test.
+
+Example:
+
+```powershell
+python .\main.py --workspace .\examples\buggy-demo --skills-dir .\.github\skills --verbose "The tests in this project are failing. Diagnose the root cause from evidence, make the smallest reasonable repair, and verify the fix."
+```
+
+Observed agent flow:
 
 ```text
-                         DevFlow
-                            │
-                    ┌───────▼────────┐
-                    │  Agent Runtime │
-                    │                │
-                    │ agent loop     │
-                    │ context        │
-                    │ system rules   │
-                    └───┬────────┬───┘
-                        │        │
-                 skills │        │ tools
-                        │        │
-              ┌─────────▼──┐  ┌──▼───────────┐
-              │Skill Manager│  │Tool Registry │
-              └─────┬──────┘  └──────┬───────┘
-                    │                │
-           ┌────────┴───────┐        ├─ list/search
-           │                │        ├─ read
-           ▼                ▼        ├─ write
- repo-understanding   debug-and-fix  ├─ run command
-      SKILL.md            SKILL.md    └─ verify
+load_skill("debug-and-fix")
+        |
+        v
+run failing tests
+        |
+        v
+observe AssertionError
+        |
+        v
+inspect config.py
+inspect pricing.py
+inspect order_service.py
+        |
+        v
+identify percentage / decimal unit mismatch
+        |
+        v
+modify order_service.py only
+        |
+        v
+rerun tests
+        |
+        v
+2 tests passed
 ```
 
-For V1, Gemini is the model backend. DevFlow itself must not be designed as a Gemini-only product.
-
----
-
-## 4. Design Rules
-
-1. **Inspect before editing.** Gather relevant context first.
-2. **Evidence over guessing.** Use files, stack traces, logs, tests, and command output.
-3. **Minimal changes.** Avoid unrelated refactoring.
-4. **Verify before success.** Run an appropriate command/test after changes when possible.
-5. **Workspace isolation.** Tools may not access paths outside the selected repository.
-6. **Errors become observations.** Tool failures should return to the agent instead of crashing the runtime.
-7. **Finite execution.** Use a maximum agent-loop iteration count.
-8. **Provider independence.** Keep Gemini-specific code separated enough to support another model later.
-9. **Do not over-engineer.** Add abstractions only when they solve a current design problem.
-
----
-
-## 5. Current V1 Tools
-
-Refactor the tutorial tools into a clean DevFlow tool layer.
-
-Required V1 capabilities:
-
-```text
-list_files
-read_file
-search_files
-write_file
-run_command
-```
-
-`run_tests` may be added later if useful, but `run_command` should already support verification workflows.
-
-### Tool registry
-
-Do not continue growing an `if/elif` dispatcher. Use an explicit registry or equivalent maintainable design.
-
-Concept:
+The defect was a unit mismatch:
 
 ```python
-TOOLS = {
-    "list_files": list_files,
-    "read_file": read_file,
-    "search_files": search_files,
-    "write_file": write_file,
-    "run_command": run_command,
-}
+# Before
+return apply_tax(subtotal, DEFAULT_TAX_PERCENT)
+
+# Verified repair
+return apply_tax(subtotal, DEFAULT_TAX_PERCENT / 100)
 ```
 
-### Tool results
+Before the repair:
 
-Tools should return a predictable result structure, for example:
-
-```python
-@dataclass
-class ToolResult:
-    success: bool
-    output: str = ""
-    error: str | None = None
+```text
+Ran 2 tests
+FAILED (failures=1)
+AssertionError: 525.0 != 30.0
 ```
 
-Use a simpler equivalent if appropriate.
+After the repair:
+
+```text
+Ran 2 tests
+OK
+```
+
+The demo can be restored to its intentionally failing baseline with:
+
+```powershell
+python .\examples\reset_buggy_demo.py
+```
 
 ---
 
-## 6. Workspace and Execution Safety
+## Evaluation
 
-DevFlow must receive an explicit workspace.
+DevFlow was evaluated using live Gemini runs together with the production skills and workspace tools.
 
-Desired interface concept:
+| Scenario | Expected skill | Actual skill | Result |
+|---|---|---|---|
+| Repository overview | `repo-understanding` | `repo-understanding` | Complete |
+| Execution and data-flow tracing | `repo-understanding` | `repo-understanding` | Complete |
+| Runtime debugging | `debug-and-fix` | `debug-and-fix` | Complete |
+| Failing-test debugging | `debug-and-fix` | `debug-and-fix` | Complete and verified |
+| Simple file listing | None | None | Complete |
+| Production-only issue without logs or fixtures | `debug-and-fix` | None | Safe partial result |
 
-```bash
-python main.py --workspace ./project --skills-dir ./.github/skills "Explain this repository"
-```
+**5 of 6 scenarios matched the expected skill-routing behavior.**
 
-All tool paths must resolve inside that workspace.
+In the remaining ambiguous production-only scenario, the agent still behaved safely: it gathered available evidence, made no unsupported changes, and clearly stated that the reported issue could not be reproduced or fully verified.
 
-`--workspace` selects the repository that file and command tools may inspect, modify, and execute in. The optional `--skills-dir` selects one separate read-only Agent Skills library; when omitted, it defaults to DevFlow's own `.github/skills/` directory.
-
-Required safeguards:
-
-- prevent `../` or equivalent workspace escape
-- do not expose `.env` secrets unnecessarily
-- use command timeouts
-- validate tool arguments
-- return stdout/stderr and exit status as observations
-- do not automatically run destructive operations such as recursive deletion or `git reset --hard`
-
-### `run_command` boundary
-
-`run_command` uses the selected workspace as the subprocess current directory, passes arguments with `shell=False`, applies a bounded timeout, removes DevFlow's Gemini credentials from the child environment, and restricts Git to a small read-only subcommand set.
-
-This is a workspace-CWD safety boundary, not an OS-level sandbox. An allowed development executable still runs with the operating-system permissions of the DevFlow process.
+The complete evaluation record is available in [`evals/phase4-evaluation.md`](evals/phase4-evaluation.md).
 
 ---
 
-## 7. Model Provider Boundary
+## Automated Validation
 
-Gemini is the current backend only.
+Run the test suite with:
 
-Keep model-specific behavior behind a small boundary so a future provider can be added without rewriting DevFlow's tools/skills.
-
-Concept only:
-
-```python
-class ModelProvider:
-    def generate(self, messages, tools):
-        ...
-
-class GeminiProvider(ModelProvider):
-    ...
+```powershell
+python -m unittest discover -s tests -v
 ```
 
-Do **not** implement other providers now.
+Current result:
 
-Future possibilities may include Ollama, vLLM, Qwen/Llama, or another OpenAI-compatible endpoint.
+```text
+Ran 21 tests
+OK
+```
+
+Tests cover areas including:
+
+- workspace containment
+- filesystem tools
+- normalized tool failures
+- command restrictions and timeouts
+- tool-registry dispatch
+- agent-loop failure handling
+- Agent Skill discovery and validation
+- metadata-only startup context
+- progressive skill loading
+- independent workspace and skill-library paths
+- production-skill discovery and loading
+- Windows UTF-8 console handling
 
 ---
 
-## 8. Agent Skills: Phase After Core Agent
+## Installation
 
-A skill is reusable procedural knowledge, not an executable tool.
+### Requirements
 
-```text
-Tool  = what the agent can do
-Skill = how the agent should handle a class of tasks
-Agent = model + context + skills + tools + loop
+- Python 3.14+
+- Gemini API key
+
+Clone the repository and create a virtual environment:
+
+```powershell
+git clone <your-repository-url>
+cd DevFlow
+
+python -m venv env
+.\env\Scripts\Activate.ps1
 ```
 
-Use portable project skills:
+Install DevFlow:
 
-```text
-.github/
-└── skills/
-    ├── repo-understanding/
-    │   └── SKILL.md
-    └── debug-and-fix/
-        ├── SKILL.md
-        └── references/
-            └── debugging-checklist.md
+```powershell
+pip install -e .
 ```
 
-The same skill files should remain usable by skills-compatible hosts such as GitHub Copilot where practical.
-
-### Progressive loading
-
-Do not inject all skill contents into every request.
+Create a `.env` file based on `.env.example`:
 
 ```text
-discover skills
-    ↓
-load name + description
-    ↓
-identify relevant skill
-    ↓
-load that SKILL.md
-    ↓
-load supporting files only if needed
+GEMINI_API_KEY=your_api_key_here
 ```
 
-V1 needs only two skills:
+The current default model is:
 
-1. `repo-understanding`
-2. `debug-and-fix`
+```text
+gemini-3.5-flash-lite
+```
 
-Do not build ML Experiment skill yet.
+A different Gemini model can be selected with the `GEMINI_MODEL` environment variable.
 
 ---
 
-## 9. Initial Skill Behaviors
+## Usage
 
-### Repository Understanding
+### Understand a repository
 
-Typical requests:
-
-```text
-What is in this repository and how does it work?
+```powershell
+python .\main.py --workspace . --verbose "Explain what this repository does, its architecture, main entry points, and execution flow."
 ```
 
-```text
-I have not touched this project recently. Give me enough context to continue development.
+### Debug another project
+
+```powershell
+python .\main.py --workspace "D:\Projects\ExampleApp" --verbose "Run this application, diagnose the failure, make the smallest reasonable fix, and verify it."
 ```
 
-Expected workflow:
+### Use an explicit skill library
 
-1. inspect repository structure
-2. identify language/framework/dependency files
-3. identify likely entry points
-4. inspect relevant modules only
-5. trace important relationships/execution paths
-6. distinguish observed facts from assumptions
-7. summarize architecture and continuation points
-
-### Debug and Fix
-
-Typical request:
-
-```text
-Run this project, find why it fails, fix it, and verify the fix.
+```powershell
+python .\main.py --workspace "D:\Projects\ExampleApp" --skills-dir .\.github\skills --verbose "Explain this repository."
 ```
 
-Expected workflow:
-
-```text
-reproduce
-   ↓
-observe evidence
-   ↓
-inspect relevant code
-   ↓
-form hypothesis
-   ↓
-minimal fix
-   ↓
-verify
-  ↙   ↘
-fail  pass
- ↓      ↓
-iterate report
-```
-
-Never report success if verification still fails.
+After installation, the package also exposes the `devflow` CLI entry point.
 
 ---
 
-## 10. Target Repository Direction
-
-Do not create every file immediately. Refactor toward a structure similar to:
+## Project Structure
 
 ```text
 DevFlow/
-├── devflow/
-│   ├── agent/
-│   │   ├── runtime.py
-│   │   ├── context.py
-│   │   └── prompts.py
-│   ├── providers/
-│   │   └── gemini.py
-│   ├── tools/
-│   │   ├── registry.py
-│   │   ├── filesystem.py
-│   │   └── execution.py
-│   └── skills/
-│       ├── manager.py
-│       └── parser.py
-│
 ├── .github/
 │   └── skills/
-│       ├── repo-understanding/
+│       ├── debug-and-fix/
 │       │   └── SKILL.md
-│       └── debug-and-fix/
+│       └── repo-understanding/
 │           └── SKILL.md
-│
-├── examples/
-│   └── buggy-project/
+├── devflow/
+│   ├── agent/
+│   │   ├── prompts.py
+│   │   └── runtime.py
+│   ├── skills/
+│   │   ├── manager.py
+│   │   └── parser.py
+│   ├── tools/
+│   │   ├── execution.py
+│   │   ├── filesystem.py
+│   │   ├── registry.py
+│   │   └── workspace.py
+│   ├── cli.py
+│   └── gemini.py
 ├── evals/
+│   └── phase4-evaluation.md
+├── examples/
+│   ├── buggy-demo/
+│   └── reset_buggy_demo.py
 ├── tests/
 ├── main.py
-├── README.md
-├── requirements.txt
-├── .env.example
-└── .gitignore
-```
-
-Prefer a simpler structure if it keeps responsibilities clear.
-
----
-
-# Development Plan
-
-## Phase 0 — Agentic Fundamentals ✅ COMPLETE
-
-The current implementation already demonstrates:
-
-- [x] Gemini API connection
-- [x] system instructions
-- [x] conversation state
-- [x] function declarations
-- [x] tool calls
-- [x] execution of tools
-- [x] returning observations
-- [x] iterative agent loop
-
-The final repository does not need a separate tutorial project.
-
----
-
-## Phase 1A — DevFlow Core ✅ COMPLETE
-
-**Goal:** turn the existing implementation into a safe, clean standalone engineering agent. Do not implement skills yet.
-
-Tasks:
-
-- [x] rename/remove tutorial-specific naming and assumptions
-- [x] introduce DevFlow system instructions
-- [x] make workspace explicit
-- [x] enforce workspace path containment
-- [x] refactor tool dispatch into a registry
-- [x] normalize tool error handling/results
-- [x] add `search_files`
-- [x] provide controlled `run_command`
-- [x] add command timeout
-- [x] add maximum agent-loop iterations
-- [x] isolate Gemini-specific code from the runtime where useful
-- [x] add `.env.example`
-- [x] clean `.gitignore`
-- [x] remove virtualenv/cache/generated files from tracked/public content
-- [x] add basic tool/runtime tests
-
-### Phase 1 acceptance tests
-
-DevFlow should independently handle:
-
-```text
-"Explain what this repository contains and how its main components relate."
-```
-
-and:
-
-```text
-"Run this application, identify the failure, fix it, and verify the result."
-```
-
-using the target workspace and the generic DevFlow tool loop.
-
-**Phase 1A was reviewed and approved before Phase 2 began.**
-
----
-
-## Phase 2 — Portable Agent Skill Runtime ✅ COMPLETE
-
-- [x] discover skill folders from `.github/skills/`
-- [x] parse and validate YAML skill metadata
-- [x] expose only available skill names and descriptions to the agent
-- [x] load one selected `SKILL.md` through the read-only `load_skill` tool
-- [x] return clean errors for unknown and invalid skills
-- [x] avoid loading every skill body into every prompt
-- [x] leave scripts and referenced resources unloaded and unexecuted
-
-Acceptance test:
-
-> A fixture skill is represented in startup context by name and description only, then its complete `SKILL.md` is returned after the model requests `load_skill` and the agent loop continues.
-
-Production workflow selection is deferred to the Phase 3 skills.
-
----
-
-## Phase 2.1 — Skill Library Portability ✅ COMPLETE
-
-- [x] accept one optional explicit `--skills-dir`
-- [x] keep skill discovery/loading separate from the target workspace
-- [x] keep the skill library read-only while workspace tools remain target-scoped
-- [x] preserve metadata-only startup context and on-demand `load_skill`
-- [x] validate skill names at 64 characters or fewer
-- [x] validate skill descriptions at 1024 characters or fewer
-- [x] retain all Phase 1A and Phase 2 tests
-
-Production skills remain deferred to Phase 3.
-
----
-
-## Phase 3 — Two Production-Style Skills ✅ COMPLETE
-
-- [x] `repo-understanding/SKILL.md`
-- [x] `debug-and-fix/SKILL.md`
-- [x] production skill discovery and progressive-loading tests
-
----
-
-## Phase 4 — Evaluation and Demo
-
-Keep evaluation small and practical.
-
-Example scenarios:
-
-| Request | Expected behavior |
-|---|---|
-| Explain this repository | repo-understanding skill |
-| Trace the execution path | repo-understanding skill |
-| Why does this test fail? Fix it | debug-and-fix skill |
-| Rename README heading | no specialized skill needed |
-| Fix still fails after modification | do not report success |
-| Request path outside workspace | refuse tool access |
-
-Measure where practical:
-
-- skill selection
-- tool selection
-- task completion
-- verification success
-- tool failure handling
-- unverified-success rate
-- workspace-boundary compliance
-
----
-
-## 11. Codex Rules for the Current Build
-
-1. Treat this README as the current project specification.
-2. Phase 4 is complete; stop for review before starting additional work.
-3. Transform the existing agent; do not create a separate replacement agent.
-4. Do not preserve `YT Project` as a final project/example directory.
-5. Do not add more production skills or future architecture during Phase 4.
-6. Do not add MCP, RAG, LangGraph, CrewAI, AutoGen, multi-agent systems, vector databases, UI, database, cloud deployment, or local-model support now.
-7. Do not rewrite working code only to match the target directory tree.
-8. Make small, reviewable changes and keep the project runnable after each step.
-9. Verify relevant behavior after modifications and report actual command/test results.
-10. Never fabricate successful execution or test results.
-11. Ask/present reasoning before making a major architectural change outside this specification.
-12. Preserve appropriate attribution for materially adapted tutorial code, but do not make the tutorial the identity of the final project.
-
----
-
-## 12. Non-Goals for V1
-
-Do not implement these now:
-
-```text
-MCP
-RAG
-vector database
-LangGraph
-CrewAI
-AutoGen
-multi-agent orchestration
-web/mobile UI
-database
-authentication
-cloud deployment
-local/open-source model runtime
-long-term memory
+├── pyproject.toml
+└── .env.example
 ```
 
 ---
 
-## 13. Future Roadmap
+## Safety and Limitations
 
-Possible future extensions, only after V1:
+DevFlow applies several safeguards:
 
-### Open-source / local models
+- file operations are restricted to the selected workspace
+- workspace-escape attempts are rejected
+- `.env` secrets are excluded from routine file access
+- subprocesses do not inherit DevFlow's Gemini credentials
+- commands run with `shell=False`
+- command execution has bounded timeouts
+- only an allowlisted set of development executables can be invoked
+- Git access is limited to selected read-only subcommands
+- agent execution has a maximum iteration count
 
-Add another provider (for example through Ollama/vLLM) for privacy, flexibility, model control, reduced vendor dependency, or cost optimization.
+`run_command` is **not an operating-system sandbox**. Allowed executables still run with the permissions of the DevFlow process.
 
-### MCP
-
-Connect external tools/services such as GitHub, Jira, Linear, internal APIs, or documentation platforms.
-
-### RAG
-
-Use retrieval only when DevFlow needs knowledge outside the active repository, such as internal engineering documentation, coding standards, architecture decisions, or historical incident reports.
-
-### Additional skills
-
-Possible later capabilities:
-
-- ML experiment management
-- code review
-- dependency analysis
-- release preparation
-- test generation
-- documentation workflows
+The current evaluation is intentionally small and should be treated as an engineering validation exercise rather than a statistical benchmark.
 
 ---
 
-## 14. Attribution
+## Future Work
 
-The initial agent-loop implementation was informed by the freeCodeCamp Agentic AI coding-agent tutorial:
+Potential next steps include:
 
-https://youtu.be/YtHdaXuOAks
-
-The tutorial was used to learn the underlying LLM tool-calling and iterative agent-loop mechanics. DevFlow is the subsequent refactoring and extension into a standalone engineering agent with its own runtime structure, developer tools, safety boundaries, portable skill system, tests, and evaluation.
-
-Retain attribution where external source code was materially adapted.
+- **Open-source and local model support** through providers such as Ollama or vLLM
+- **Model-provider abstraction** to reduce dependency on a single LLM backend
+- **MCP integrations** for external engineering systems such as GitHub, project-management tools, documentation platforms, and internal APIs
+- **Retrieval-augmented context** when workflows require knowledge outside the active repository
+- **Expanded skill-routing evaluation** across larger and more ambiguous task sets
+- **VS Code / GitHub Copilot portability validation** using the same `SKILL.md` capabilities
+- **Additional engineering skills** only where a repeated workflow justifies them
 
 ---
 
-## 15. Definition of V1 Done
+## Design Principles
 
-DevFlow V1 is complete when:
+1. Inspect before editing.
+2. Prefer evidence over assumptions.
+3. Make focused changes.
+4. Treat tool failures as observations.
+5. Verify before reporting success.
+6. Keep execution finite.
+7. Separate reusable procedural knowledge from the core agent runtime.
+8. Avoid adding architecture without a demonstrated need.
 
-- [ ] standalone DevFlow works against an explicit workspace
-- [ ] file tools cannot escape that workspace
-- [ ] DevFlow can list/search/read/write relevant files
-- [ ] DevFlow can execute controlled commands and observe results
-- [ ] tool failures return to the agent cleanly
-- [ ] agent loop has a maximum iteration limit
-- [ ] model backend is not entangled with the entire application
-- [ ] DevFlow discovers and progressively loads `SKILL.md` skills
-- [ ] repo-understanding skill works on a realistic repository
-- [ ] debug-and-fix skill reproduces, repairs, and verifies a realistic defect
-- [ ] basic tests cover critical runtime/tool safety
-- [ ] small evaluation demonstrates correct skill/tool behavior
-- [ ] public repository contains no secrets, virtual environment, cache files, or tutorial-only artifacts
+---
+
+## Acknowledgements
+
+The earliest agent-loop prototype was developed while following a freeCodeCamp Agentic AI coding-agent tutorial to understand function calling, tool execution, observations, and iterative LLM workflows.
+
+DevFlow subsequently refactored and extended that foundation into a standalone engineering agent with workspace-scoped tools, structured tool handling, a portable Agent Skills runtime, progressive skill loading, production engineering workflows, automated tests, and end-to-end evaluation.
