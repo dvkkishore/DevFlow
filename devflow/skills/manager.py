@@ -131,8 +131,9 @@ class SkillCatalog:
                 for skill in self.metadata
             ),
             (
-                "When a listed skill is relevant, call load_skill with its exact name "
-                "before following its instructions."
+                "Before using another tool, compare the request with these descriptions. "
+                "If a listed skill is relevant, you must call load_skill with its exact "
+                "name and follow the loaded instructions."
             ),
         ]
         return "\n".join(lines)

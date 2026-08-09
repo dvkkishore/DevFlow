@@ -90,6 +90,29 @@ def create_default_registry(
     from devflow.tools.filesystem import list_files, read_file, search_files, write_file
 
     registry = ToolRegistry()
+    if skill_catalog is not None:
+        registry.register(
+            ToolDefinition(
+                name="load_skill",
+                description=(
+                    "Load the full SKILL.md instructions for one discovered Agent Skill. "
+                    "When a request matches an available skill description, use this "
+                    "read-only tool before other tools. It does not execute scripts or "
+                    "resources."
+                ),
+                parameters={
+                    "type": "object",
+                    "properties": {
+                        "name": {
+                            "type": "string",
+                            "description": "Exact skill name from the available skill catalog.",
+                        }
+                    },
+                    "required": ["name"],
+                },
+                handler=skill_catalog.load_skill,
+            )
+        )
     registry.register(
         ToolDefinition(
             name="list_files",
@@ -193,25 +216,4 @@ def create_default_registry(
             handler=partial(run_command, workspace),
         )
     )
-    if skill_catalog is not None:
-        registry.register(
-            ToolDefinition(
-                name="load_skill",
-                description=(
-                    "Load the full SKILL.md instructions for one discovered Agent Skill. "
-                    "This is read-only and does not execute skill scripts or resources."
-                ),
-                parameters={
-                    "type": "object",
-                    "properties": {
-                        "name": {
-                            "type": "string",
-                            "description": "Exact skill name from the available skill catalog.",
-                        }
-                    },
-                    "required": ["name"],
-                },
-                handler=skill_catalog.load_skill,
-            )
-        )
     return registry

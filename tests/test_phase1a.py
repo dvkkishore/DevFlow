@@ -9,7 +9,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from devflow.agent.runtime import AgentRuntime
-from devflow.cli import build_parser
+from devflow.cli import build_parser, configure_output_streams
 from devflow.gemini import GeminiToolCall, GeminiTurn
 from devflow.tools.execution import run_command
 from devflow.tools.registry import create_default_registry
@@ -187,6 +187,24 @@ class RuntimeTests(unittest.TestCase):
         self.assertEqual(args.workspace, str(self.workspace.root))
         self.assertEqual(args.skills_dir, "skill-library")
         self.assertEqual(args.prompt, "Explain this repository")
+
+    def test_cli_configures_unicode_safe_output(self) -> None:
+        class ReconfigurableStream:
+            def __init__(self) -> None:
+                self.options = None
+
+            def reconfigure(self, **options) -> None:
+                self.options = options
+
+        stdout = ReconfigurableStream()
+        stderr = ReconfigurableStream()
+        with patch("devflow.cli.sys.stdout", stdout), patch(
+            "devflow.cli.sys.stderr", stderr
+        ):
+            configure_output_streams()
+
+        self.assertEqual(stdout.options, {"encoding": "utf-8", "errors": "replace"})
+        self.assertEqual(stderr.options, {"encoding": "utf-8", "errors": "replace"})
 
 
 if __name__ == "__main__":

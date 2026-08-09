@@ -3,9 +3,9 @@
 > A standalone AI engineering agent that understands repositories, uses developer tools, fixes code, verifies its work, and supports portable Agent Skills.
 
 > [!IMPORTANT]
-> **Current phase: Phase 2.1 skill-library portability complete — awaiting review before Phase 3.**
+> **Current phase: Phase 4 end-to-end demonstration and lightweight evaluation complete — awaiting review.**
 >
-> Phase 1A transformed the tutorial implementation into DevFlow Core. Phase 2 added progressive `SKILL.md` loading, and Phase 2.1 separated the read-only skill library from the writable target workspace. Production skills have not been written yet.
+> Phase 1A established DevFlow Core, Phase 2 added progressive `SKILL.md` loading, Phase 2.1 separated the skill library from the target workspace, and Phase 3 added the production `repo-understanding` and `debug-and-fix` skills.
 
 ---
 
@@ -471,11 +471,11 @@ Production skills remain deferred to Phase 3.
 
 ---
 
-## Phase 3 — Two Production-Style Skills
+## Phase 3 — Two Production-Style Skills ✅ COMPLETE
 
-- [ ] `repo-understanding/SKILL.md`
-- [ ] `debug-and-fix/SKILL.md`
-- [ ] realistic tests/demo for each
+- [x] `repo-understanding/SKILL.md`
+- [x] `debug-and-fix/SKILL.md`
+- [x] production skill discovery and progressive-loading tests
 
 ---
 
@@ -509,10 +509,10 @@ Measure where practical:
 ## 11. Codex Rules for the Current Build
 
 1. Treat this README as the current project specification.
-2. Phase 2.1 is complete; stop for review before starting Phase 3 production skills.
+2. Phase 4 is complete; stop for review before starting additional work.
 3. Transform the existing agent; do not create a separate replacement agent.
 4. Do not preserve `YT Project` as a final project/example directory.
-5. Do not create production skills until the Phase 2 runtime is reviewed.
+5. Do not add more production skills or future architecture during Phase 4.
 6. Do not add MCP, RAG, LangGraph, CrewAI, AutoGen, multi-agent systems, vector databases, UI, database, cloud deployment, or local-model support now.
 7. Do not rewrite working code only to match the target directory tree.
 8. Make small, reviewable changes and keep the project runnable after each step.

@@ -20,6 +20,13 @@ DEFAULT_MODEL = "gemini-3.5-flash-lite"
 DEFAULT_SKILLS_DIR = Path(__file__).resolve().parents[1] / ".github" / "skills"
 
 
+def configure_output_streams() -> None:
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="devflow",
@@ -88,4 +95,5 @@ def main(argv: Sequence[str] | None = None) -> int:
 
 
 def entrypoint() -> None:
+    configure_output_streams()
     raise SystemExit(main())

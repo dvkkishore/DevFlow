@@ -89,6 +89,8 @@ class SkillCatalogTests(unittest.TestCase):
 
         self.assertIn("sample-guidance", prompt)
         self.assertIn("progressive Agent Skill loading", prompt)
+        self.assertIn("Before using another tool", prompt)
+        self.assertIn("you must call load_skill", prompt)
         self.assertNotIn("UNIQUE_SKILL_BODY_MARKER", prompt)
         self.assertNotIn("Inspect the relevant input", prompt)
 
@@ -112,6 +114,7 @@ class SkillCatalogTests(unittest.TestCase):
             workspace = Workspace.from_path(target_directory)
             catalog = SkillCatalog.discover(FIXTURE_SKILLS_DIR)
             registry = create_default_registry(workspace, catalog)
+            self.assertEqual(registry.definitions[0].name, "load_skill")
             session = FakeSession(
                 [
                     GeminiTurn(
