@@ -443,11 +443,3 @@ Potential next steps include:
 6. Keep execution finite.
 7. Separate reusable procedural knowledge from the core agent runtime.
 8. Avoid adding architecture without a demonstrated need.
-
----
-
-## Acknowledgements
-
-The earliest agent-loop prototype was developed while following a freeCodeCamp Agentic AI coding-agent tutorial to understand function calling, tool execution, observations, and iterative LLM workflows.
-
-DevFlow subsequently refactored and extended that foundation into a standalone engineering agent with workspace-scoped tools, structured tool handling, a portable Agent Skills runtime, progressive skill loading, production engineering workflows, automated tests, and end-to-end evaluation.
