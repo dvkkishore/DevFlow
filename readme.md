@@ -1,9 +1,6 @@
 # DevFlow
 
-> **At a glance:** A Python/Gemini engineering-agent prototype that inspects repositories, uses structured development tools, loads task-specific skills, and verifies focused changes. **Evidence:** a repeatable failing-test demo, 21 passing offline unit tests, and an existing small exploratory evaluation. **Scope:** engineering prototype; command restrictions are not an OS sandbox.
-
-**Explore:** [Architecture](#architecture) · [Debugging demo](#end-to-end-debugging-demo) · [Evaluation](#evaluation) · [Detailed case study](docs/CASE_STUDY.md)
-
+**Documentation:** [Architecture](#architecture) · [Skills](#agent-skills) · [Installation](#installation) · [Tests](#automated-validation) · [Technical overview](docs/TECHNICAL_OVERVIEW.md)
 
 **A standalone agentic AI engineering assistant with portable Agent Skills for repository understanding and verified debugging.**
 
