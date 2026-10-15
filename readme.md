@@ -1,5 +1,10 @@
 # DevFlow
 
+> **At a glance:** A Python/Gemini engineering-agent prototype that inspects repositories, uses structured development tools, loads task-specific skills, and verifies focused changes. **Evidence:** a repeatable failing-test demo, 21 passing offline unit tests, and an existing small exploratory evaluation. **Scope:** engineering prototype; command restrictions are not an OS sandbox.
+
+**Explore:** [Architecture](#architecture) · [Debugging demo](#end-to-end-debugging-demo) · [Evaluation](#evaluation) · [Detailed case study](docs/CASE_STUDY.md)
+
+
 **A standalone agentic AI engineering assistant with portable Agent Skills for repository understanding and verified debugging.**
 
 DevFlow uses an iterative LLM tool-calling loop to inspect software repositories, search and read code, execute development commands, make focused changes, and verify its work inside an explicitly scoped workspace.
