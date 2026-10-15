@@ -1,4 +1,4 @@
-# DevFlow: Engineering agent with progressive skills
+# DevFlow: Technical overview
 
 ## The challenge
 
@@ -36,7 +36,7 @@ The included `examples/buggy-demo/` simulates an order calculation defect. A fai
 - `evals/phase4-evaluation.md` describes a **small six-scenario, developer-run evaluation**, including five expected skill routings and one deliberately ambiguous case. These observations are not a statistical benchmark, and the live model run was not reproduced during this documentation pass.
 - The deterministic demo documents the failing test and the subsequently passing tests; actual Gemini behavior may differ by model version and environment.
 
-## What this demonstrates
+## Supported behaviors
 
 Agent-loop design, development-tool interfaces, context/skill management, error handling, safety trade-offs, test-oriented workflow design and communicating uncertainty.
 
@@ -44,8 +44,28 @@ Agent-loop design, development-tool interfaces, context/skill management, error 
 
 The runtime currently targets a single Gemini backend. Large-repository, multi-agent, adversarial, resource-budget and live-provider reliability studies have not been established. A full process/container sandbox, tighter write authorization and more systematic evaluation would be separate engineering work.
 
-## Contribution and provenance
+## Sources and maintenance
 
-The repository is the primary evidence for the implementation. This document describes **repository-level work**, not independently verified personal ownership of each module. For a CV or portfolio interview, describe your individual contribution only where you can support it with commits or a contemporaneous work record.
+The implementation, tests and evaluation records are the sources for these design notes. Individual contributions should be confirmed through project records, not inferred from filenames.
 
 **Primary sources:** [main README](../readme.md) · [agent runtime](../devflow/agent/runtime.py) · [tool execution](../devflow/tools/execution.py) · [evaluation](../evals/phase4-evaluation.md).
+
+
+## Repository map
+
+| Path | Purpose |
+| --- | --- |
+| `main.py`, `devflow/cli.py` | CLI entry points |
+| `devflow/agent/runtime.py` | Iterative agent runtime and tool observations |
+| `devflow/gemini.py` | Gemini model integration |
+| `devflow/skills/` | Skill discovery and loading |
+| `devflow/tools/` | Workspace file and process tools |
+| `.github/skills/` | Reusable procedures |
+| `examples/buggy-demo/` | Reproducible debugging example |
+| `tests/` and `evals/` | Regression tests and evaluation records |
+
+## Operation and maintenance
+
+Install with `pip install -e .` in a compatible Python 3.14+ environment, then run `python -m unittest discover -s tests -v`. A live agent run also requires a configured Gemini API key. The [main README](../readme.md) has the CLI and configuration details.
+
+The command allowlist and workspace checks do not sandbox an operating-system process. When updating the tool registry or skill loader, maintain the established failure-propagation and scope tests; a green unit test suite does not demonstrate safe arbitrary-code execution.
