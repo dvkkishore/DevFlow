@@ -311,7 +311,7 @@ Tests cover areas including:
 Clone the repository and create a virtual environment:
 
 ```powershell
-git clone <your-repository-url>
+git clone https://github.com/dvkkishore/DevFlow.git
 cd DevFlow
 
 python -m venv env
